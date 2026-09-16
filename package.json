@@ -1,5 +1,4 @@
 {
-	"name": "naga-wasm-workspace",
 	"private": true,
 	"workspaces": [
 		"npm"
