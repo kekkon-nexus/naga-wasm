@@ -1,0 +1,21 @@
+{
+  "name": "naga-wasm",
+  "version": "0.0.0",
+  "description": "naga shader translator (wgpu) compiled to WebAssembly",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "node": "./dist/node.js",
+      "default": "./dist/index.js"
+    },
+    "./naga_bg.wasm": "./dist/wasm/naga_bg.wasm"
+  },
+  "files": ["dist"],
+  "sideEffects": false,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/"
+  }
+}
