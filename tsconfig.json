@@ -1,13 +1,3 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2022", "DOM", "ESNext.Disposable"],
-    "strict": true,
-    "declaration": true,
-    "rootDir": "js",
-    "outDir": "dist"
-  },
-  "include": ["js"]
+	"extends": ["@kekkon-nexus/config/ts", "@kekkon-nexus/config/ts/strict"]
 }

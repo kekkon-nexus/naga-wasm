@@ -1,0 +1,12 @@
+[profile.release]
+opt-level = "z"
+lto = "fat"
+panic = "abort"
+codegen-units = 1
+# strip removes the custom sections wasm-bindgen reads; wasm-opt strips later
+
+[target."cfg(all())"]
+rustflags = [
+  "-Zshare-generics=y",
+  "-Zthreads=0",
+]

@@ -1,0 +1,95 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: rust
+      glob: "*.rs"
+      group:
+        piped: true
+        jobs:
+          - run: cargo fmt --all
+          - run: cargo clippy --workspace --all-targets --all-features --allow-staged --allow-dirty --fix -- -D warnings
+            stage_fixed: true
+    - name: toml
+      glob: "*.toml"
+      group:
+        piped: true
+        jobs:
+          - run: bunx tombi format {staged_files}
+          - run: bunx tombi lint {staged_files}
+            stage_fixed: true
+    - name: v8r
+      glob: "*.{json,jsonc,yaml,yml}"
+      run: bunx v8r {staged_files}
+    - name: js
+      glob: "*.{js,ts,json,jsonc,yaml,yml,md}"
+      group:
+        piped: true
+        jobs:
+          - run: bunx oxfmt {staged_files}
+          - run: bunx oxlint --fix --no-error-on-unmatched-pattern {staged_files}
+            stage_fixed: true
+
+commit-msg:
+  jobs:
+    - run: bunx commitlint --edit {1}
+
+check:
+  parallel: true
+  jobs:
+    - name: rust
+      group:
+        piped: true
+        jobs:
+          - run: cargo fmt --all --check
+          - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+    - name: toml
+      glob: "*.toml"
+      group:
+        piped: true
+        jobs:
+          - run: bunx tombi format --check {all_files}
+          - run: bunx tombi lint {all_files}
+    - name: v8r
+      glob: "*.{json,jsonc,yaml,yml}"
+      run: bunx v8r {all_files}
+    - name: js
+      exclude:
+        - "*.toml"
+      group:
+        piped: true
+        jobs:
+          - run: bunx oxfmt --check {all_files}
+          - run: bunx oxlint --no-error-on-unmatched-pattern {all_files}
+
+fix:
+  parallel: true
+  jobs:
+    - name: rust
+      group:
+        piped: true
+        jobs:
+          - run: cargo fmt --all
+          - run: cargo clippy --workspace --all-targets --all-features --allow-staged --allow-dirty --fix
+    - name: toml
+      glob: "*.toml"
+      group:
+        piped: true
+        jobs:
+          - run: bunx tombi format {all_files}
+          - run: bunx tombi lint {all_files}
+    - name: v8r
+      glob: "*.{json,jsonc,yaml,yml}"
+      run: bunx v8r {all_files}
+    - name: js
+      exclude:
+        - "*.toml"
+      group:
+        piped: true
+        jobs:
+          - run: bunx oxfmt {all_files}
+          - run: bunx oxlint --fix --no-error-on-unmatched-pattern {all_files}
+
+test:
+  jobs:
+    - name: vitest
+      run: bunx vitest run --passWithNoTests
