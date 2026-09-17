@@ -1,47 +1,36 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - npm/package.json
-  workflow_dispatch: {}
-
-concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: false
-
-permissions:
-  contents: read
+  workflow_dispatch:
+    inputs:
+      version:
+        description: major, minor, patch or an exact version
+        type: string
+        required: true
 
 jobs:
   release:
-    environment: publish
     permissions:
       contents: write
-      id-token: write
+      actions: write
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v7
-      - id: version
-        run: |
-          version=$(node -p 'require("./npm/package.json").version')
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "naga=$(sed -n 's/^export const nagaVersion = "\(.*\)";$/\1/p' npm/src/version.ts)" >> "$GITHUB_OUTPUT"
-          if [ "$version" != "0.0.0" ] && [ -z "$(npm view "naga-wasm@$version" version 2>/dev/null)" ]; then
-            echo "publish=true" >> "$GITHUB_OUTPUT"
-          fi
-      - if: steps.version.outputs.publish
-        uses: ./.github/actions/setup
-      - if: steps.version.outputs.publish
-        run: bun run test
-      - if: steps.version.outputs.publish
-        run: npm install --global npm@latest && npm publish --provenance --access public
-        working-directory: npm
-      - if: steps.version.outputs.publish
+
+      - uses: oven-sh/setup-bun@v2
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - run: bun scripts/bump.ts "$VERSION"
+        env:
+          VERSION: ${{ inputs.version }}
+          LEFTHOOK: 0
+      - run: git push --follow-tags
+
+      # tags pushed with GITHUB_TOKEN do not trigger workflows, dispatch is the exception
+      - run: gh workflow run ci.yaml --ref "$(git describe --tags --abbrev=0)"
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          NAGA: ${{ steps.version.outputs.naga }}
-        run: gh release create "v$VERSION" --title "v$VERSION" --notes "Bundles naga $NAGA." --generate-notes

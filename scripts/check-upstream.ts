@@ -2,9 +2,9 @@ import { appendFile } from "node:fs/promises";
 
 import { file, semver, write } from "bun";
 
-import { nagaVersion } from "../src/version.ts";
+import { nagaVersion } from "../npm/src/version.ts";
 
-process.chdir(new URL("../../", import.meta.url).pathname);
+process.chdir(new URL("../", import.meta.url).pathname);
 
 const response = await fetch("https://crates.io/api/v1/crates/naga", {
 	headers: {
@@ -20,14 +20,8 @@ const body = (await response.json()) as {
 const latest = body.crate.max_stable_version;
 
 if (semver.order(latest, nagaVersion) > 0) {
-	const [latestMajor, latestMinor] = latest.split(".");
-	const [currentMajor, currentMinor] = nagaVersion.split(".");
 	const kind =
-		latestMajor === currentMajor
-			? latestMinor === currentMinor
-				? "patch"
-				: "minor"
-			: "major";
+		latest.split(".")[0] === nagaVersion.split(".")[0] ? "minor" : "major";
 
 	const manifest = await file("Cargo.toml").text();
 	await write(
@@ -40,23 +34,6 @@ if (semver.order(latest, nagaVersion) > 0) {
 	await write(
 		"npm/src/version.ts",
 		`export const nagaVersion = "${latest}";\n`,
-	);
-
-	const packageJson = await file("npm/package.json").text();
-	await write(
-		"npm/package.json",
-		packageJson.replace(
-			/"version": "(\d+)\.(\d+)\.(\d+)"/,
-			(_, major: string, minor: string, patch: string) => {
-				const version =
-					kind === "major"
-						? `${latestMajor}.0.0`
-						: kind === "minor"
-							? `${major}.${Number(minor) + 1}.0`
-							: `${major}.${minor}.${Number(patch) + 1}`;
-				return `"version": "${version}"`;
-			},
-		),
 	);
 
 	console.info(`naga ${nagaVersion} -> ${latest} (${kind})`);

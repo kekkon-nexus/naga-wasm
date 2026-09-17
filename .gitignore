@@ -4,3 +4,4 @@
 
 # Build
 *.tsbuildinfo
+naga-wasm-*.tgz

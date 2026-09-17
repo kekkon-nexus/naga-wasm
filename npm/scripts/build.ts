@@ -1,23 +1,26 @@
-import { $, file } from "bun";
+import { $, file, TOML } from "bun";
 
 import { nagaVersion } from "../src/version.ts";
 
 process.chdir(new URL("../../", import.meta.url).pathname);
 
-const lockfile = await file("Cargo.lock").text();
-const locked = /name = "wasm-bindgen"\nversion = "(.+)"/.exec(lockfile)?.[1];
+const lockfile = TOML.parse(await file("Cargo.lock").text()) as {
+	package: { name: string; version: string }[];
+};
+const locked = (name: string) =>
+	lockfile.package.find((crate) => crate.name === name)?.version;
+
 const cliVersion = await $`wasm-bindgen --version`.text();
 const cli = cliVersion.trim().split(" ")[1];
-if (cli !== locked) {
+if (cli !== locked("wasm-bindgen")) {
 	throw new Error(
-		`wasm-bindgen CLI ${cli} does not match Cargo.lock ${locked}`,
+		`wasm-bindgen CLI ${cli} does not match Cargo.lock ${locked("wasm-bindgen")}`,
 	);
 }
 
-const naga = /name = "naga"\nversion = "(.+)"/.exec(lockfile)?.[1];
-if (naga !== nagaVersion) {
+if (nagaVersion !== locked("naga")) {
 	throw new Error(
-		`nagaVersion ${nagaVersion} does not match Cargo.lock naga ${naga}`,
+		`nagaVersion ${nagaVersion} does not match Cargo.lock naga ${locked("naga")}`,
 	);
 }
 

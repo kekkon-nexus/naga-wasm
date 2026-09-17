@@ -1,32 +1,69 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_call: {}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup
-      - run: bun run test
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          rustflags: ""
+      - id: wasm-bindgen
+        run: echo "version=$(yq -p toml -oy '.package[] | select(.name == "wasm-bindgen").version' Cargo.lock)" >> "$GITHUB_OUTPUT"
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
+      - uses: robinraju/release-downloader@v1
+        with:
+          repository: WebAssembly/binaryen
+          tag: version_132
+          fileName: binaryen-version_132-x86_64-linux.tar.gz
+          out-file-path: ${{ runner.temp }}
+          extract: true
+      - run: echo "$RUNNER_TEMP/binaryen-version_132/bin" >> "$GITHUB_PATH"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - run: bun ci
+
+      - run: bun run build
       - run: bun run check
-      - run: npm pack --dry-run --ignore-scripts
-        working-directory: npm
-      - name: Report wasm size
-        run: |
-          wasm=npm/dist/wasm/naga_bg.wasm
-          echo "naga_bg.wasm: $(stat -c %s $wasm) bytes, $(gzip -9c $wasm | wc -c) bytes gzipped" >> "$GITHUB_STEP_SUMMARY"
+      - run: bunx vitest run
+
+      - run: bun run pack
+      - run: echo "naga_bg.wasm $(stat -c %s npm/dist/wasm/naga_bg.wasm) bytes, $(gzip -9c npm/dist/wasm/naga_bg.wasm | wc -c) gzipped" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          path: naga-wasm-*.tgz
+          archive: false
+
+  cd:
+    needs: [ci]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    permissions:
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          skip-decompress: true
+      - uses: actions/attest@v4
+        with:
+          subject-path: naga-wasm-*.tgz
+
+      - run: npm install -g npm@latest
+      - run: npm publish naga-wasm-*.tgz
