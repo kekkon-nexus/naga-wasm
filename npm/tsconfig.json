@@ -1,9 +1,13 @@
 {
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
+		"composite": false,
+		"noEmit": false,
+		"declaration": true,
 		"lib": ["esnext", "dom"],
 		"types": ["node"],
 		"rootDir": "src",
+		"rootDirs": ["src", "dist"],
 		"outDir": "dist"
 	},
 	"include": ["src"]

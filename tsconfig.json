@@ -1,3 +1,9 @@
 {
-	"extends": ["@kekkon-nexus/config/ts", "@kekkon-nexus/config/ts/strict"]
+	"extends": ["@kekkon-nexus/config/ts", "@kekkon-nexus/config/ts/strict"],
+	"compilerOptions": {
+		"types": ["bun", "node"],
+		"rootDirs": ["npm/src", "npm/dist"],
+		"noEmit": true
+	},
+	"exclude": ["npm/dist"]
 }

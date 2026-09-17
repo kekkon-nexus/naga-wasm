@@ -90,6 +90,9 @@ fix:
           - run: bunx oxlint --fix --no-error-on-unmatched-pattern {all_files}
 
 test:
+  piped: true
   jobs:
+    - name: build
+      run: bun run build
     - name: vitest
-      run: bunx vitest run --passWithNoTests
+      run: bunx vitest run

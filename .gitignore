@@ -1,3 +1,7 @@
 /node_modules
 /target
 /dist
+
+# Build
+/npm/dist
+*.tsbuildinfo
