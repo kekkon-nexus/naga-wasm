@@ -1,20 +1,20 @@
-use naga::back::glsl;
-use naga::valid::{Capabilities, ValidationFlags, Validator};
 use serde::Deserialize;
+use upstream::back::glsl;
+use upstream::valid::{Capabilities, ValidationFlags, Validator};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct Module {
-    module: naga::Module,
+    module: upstream::Module,
     source: String,
 }
 
 #[wasm_bindgen]
-pub struct ModuleInfo(naga::valid::ModuleInfo);
+pub struct ModuleInfo(upstream::valid::ModuleInfo);
 
 #[wasm_bindgen(js_name = parseWgsl)]
 pub fn parse_wgsl(source: String) -> Result<Module, JsError> {
-    match naga::front::wgsl::parse_str(&source) {
+    match upstream::front::wgsl::parse_str(&source) {
         Ok(module) => Ok(Module { module, source }),
         Err(error) => Err(JsError::new(&error.emit_to_string(&source))),
     }
@@ -52,9 +52,9 @@ pub fn write_glsl(
 ) -> Result<String, JsError> {
     let options: GlslOptions = serde_wasm_bindgen::from_value(options)?;
     let shader_stage = match options.stage {
-        Stage::Vertex => naga::ShaderStage::Vertex,
-        Stage::Fragment => naga::ShaderStage::Fragment,
-        Stage::Compute => naga::ShaderStage::Compute,
+        Stage::Vertex => upstream::ShaderStage::Vertex,
+        Stage::Fragment => upstream::ShaderStage::Fragment,
+        Stage::Compute => upstream::ShaderStage::Compute,
     };
 
     let mut out = String::new();
@@ -71,7 +71,7 @@ pub fn write_glsl(
             entry_point: options.entry_point,
             multiview: None,
         },
-        naga::proc::BoundsCheckPolicies::default(),
+        upstream::proc::BoundsCheckPolicies::default(),
     )?
     .write()?;
     Ok(out)

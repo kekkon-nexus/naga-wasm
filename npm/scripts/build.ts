@@ -14,16 +14,15 @@ if (cli !== locked) {
 	);
 }
 
-const manifest = await file("Cargo.toml").text();
-const pinned = /^naga = \{ version = "=(.+?)"/m.exec(manifest)?.[1];
-if (pinned !== nagaVersion) {
+const naga = /name = "naga"\nversion = "(.+)"/.exec(lockfile)?.[1];
+if (naga !== nagaVersion) {
 	throw new Error(
-		`nagaVersion ${nagaVersion} does not match Cargo.toml naga ${pinned}`,
+		`nagaVersion ${nagaVersion} does not match Cargo.lock naga ${naga}`,
 	);
 }
 
 await $`cargo build --release --target wasm32-unknown-unknown`;
-await $`wasm-bindgen --target web --weak-refs --out-dir npm/dist/wasm --out-name naga target/wasm32-unknown-unknown/release/naga_wasm.wasm`;
+await $`wasm-bindgen --target web --weak-refs --out-dir npm/dist/wasm target/wasm32-unknown-unknown/release/naga.wasm`;
 await $`wasm-opt -Oz npm/dist/wasm/naga_bg.wasm -o npm/dist/wasm/naga_bg.wasm`;
 await $`tsc -p npm`;
 await $`cp LICENSE-MIT LICENSE-APACHE npm`;
