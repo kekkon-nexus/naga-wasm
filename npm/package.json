@@ -1,6 +1,6 @@
 {
 	"name": "naga-wasm",
-	"version": "0.0.0",
+	"version": "30.0.0",
 	"description": "naga shader translator (wgpu) compiled to WebAssembly",
 	"keywords": [
 		"glsl",
