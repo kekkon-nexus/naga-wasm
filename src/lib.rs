@@ -1,4 +1,5 @@
 mod options;
+mod reflection;
 
 use serde::de::DeserializeOwned;
 use upstream::back::{glsl, hlsl, msl, spv, wgsl};
@@ -9,6 +10,7 @@ use crate::options::{
     GlslParseOptions, GlslWriteOptions, HlslWriteOptions, MslWriteOptions,
     SpirvWriteOptions, WgslWriteOptions,
 };
+use crate::reflection::GlslOutput;
 
 #[wasm_bindgen]
 pub struct Module {
@@ -94,12 +96,12 @@ pub fn write_wgsl(
     Ok(wgsl::write_string(&module.module, &info.0, flags)?)
 }
 
-#[wasm_bindgen(js_name = writeGlsl)]
+#[wasm_bindgen(js_name = writeGlsl, unchecked_return_type = "GlslOutput")]
 pub fn write_glsl(
     module: &Module,
     info: &ModuleInfo,
     #[wasm_bindgen(unchecked_param_type = "GlslWriteOptions")] options: JsValue,
-) -> Result<String, JsError> {
+) -> Result<JsValue, JsError> {
     let options: GlslWriteOptions = serde_wasm_bindgen::from_value(options)?;
     let mut glsl_options = glsl::Options {
         version: options::glsl_version(&options.version)?,
@@ -109,9 +111,18 @@ pub fn write_glsl(
         .flags
         .unwrap_or_default()
         .apply(&mut glsl_options.writer_flags);
-    let mut out = String::new();
-    glsl::Writer::new(
-        &mut out,
+    for slot in options.binding_map.unwrap_or_default() {
+        glsl_options.binding_map.insert(
+            upstream::ResourceBinding {
+                group: slot.group,
+                binding: slot.binding,
+            },
+            slot.slot,
+        );
+    }
+    let mut code = String::new();
+    let reflection = glsl::Writer::new(
+        &mut code,
         &module.module,
         &info.0,
         &glsl_options,
@@ -123,7 +134,7 @@ pub fn write_glsl(
         upstream::proc::BoundsCheckPolicies::default(),
     )?
     .write()?;
-    Ok(out)
+    GlslOutput::new(code, &module.module, reflection).into_js()
 }
 
 #[wasm_bindgen(js_name = writeHlsl)]
