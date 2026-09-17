@@ -7,7 +7,7 @@
 	"scripts": {
 		"prepare": "lefthook install",
 		"build": "bun npm/scripts/build.ts",
-		"clean": "rm -rf npm/dist npm/*.tsbuildinfo npm/LICENSE-*",
+		"clean": "rm -rf npm/dist npm/*.tsbuildinfo npm/LICENSE-* npm/README.md",
 		"pack": "bun pm pack --cwd npm --destination ..",
 		"bump": "bun scripts/bump.ts",
 		"check": "lefthook run check",
