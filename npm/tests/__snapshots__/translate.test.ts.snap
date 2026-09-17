@@ -1,11 +1,26 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`translates wgsl to glsl 1`] = `
+exports[`backends > writes glsl 1`] = `
 "#version 300 es
 
 precision highp float;
 precision highp int;
 
+
+void main() {
+    uint index = uint(gl_VertexID);
+    float x = float((int(index) - 1));
+    float y = float(((int((index & 1u)) * 2) - 1));
+    gl_Position = vec4(x, y, 0.0, 1.0);
+    gl_Position.yz = vec2(-gl_Position.y, gl_Position.z * 2.0 - gl_Position.w);
+    return;
+}
+
+"
+`;
+
+exports[`backends > writes glsl 2`] = `
+"#version 330 core
 layout(location = 0) out vec4 _fs2p_location0;
 
 void main() {
@@ -13,5 +28,258 @@ void main() {
     return;
 }
 
+"
+`;
+
+exports[`backends > writes hlsl 1`] = `
+"float4 vs_main(uint index : SV_VertexID) : SV_Position
+{
+    float x = float(asint(asuint(int(index)) - asuint(int(1))));
+    float y = float(asint(asuint(asint(asuint(int((index & 1u))) * asuint(int(2)))) - asuint(int(1))));
+    return float4(x, y, 0.0, 1.0);
+}
+
+float4 fs_main() : SV_Target0
+{
+    return float4(1.0, 0.0, 0.0, 1.0);
+}
+"
+`;
+
+exports[`backends > writes hlsl 2`] = `
+"float4 vs_main(uint index : SV_VertexID) : SV_Position
+{
+    float x = float(asint(asuint(int(index)) - asuint(int(1))));
+    float y = float(asint(asuint(asint(asuint(int((index & 1u))) * asuint(int(2)))) - asuint(int(1))));
+    return float4(x, y, 0.0, 1.0);
+}
+
+float4 fs_main() : SV_Target0
+{
+    return float4(1.0, 0.0, 0.0, 1.0);
+}
+"
+`;
+
+exports[`backends > writes msl 1`] = `
+"// language: metal1.0
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using metal::uint;
+
+
+struct vs_mainInput {
+};
+struct vs_mainOutput {
+    metal::float4 member [[position]];
+};
+vertex vs_mainOutput vs_main(
+  uint index [[vertex_id]]
+) {
+    float x = static_cast<float>(as_type<int>(as_type<uint>(static_cast<int>(index)) - as_type<uint>(1)));
+    float y = static_cast<float>(as_type<int>(as_type<uint>(as_type<int>(as_type<uint>(static_cast<int>(index & 1u)) * as_type<uint>(2))) - as_type<uint>(1)));
+    return vs_mainOutput { metal::float4(x, y, 0.0, 1.0) };
+}
+
+
+struct fs_mainOutput {
+    metal::float4 member_1 [[color(0)]];
+};
+fragment fs_mainOutput fs_main(
+) {
+    return fs_mainOutput { metal::float4(1.0, 0.0, 0.0, 1.0) };
+}
+"
+`;
+
+exports[`backends > writes msl 2`] = `
+"// language: metal2.1
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using metal::uint;
+
+
+struct vs_mainInput {
+};
+struct vs_mainOutput {
+    metal::float4 member [[position]];
+};
+vertex vs_mainOutput vs_main(
+  uint index [[vertex_id]]
+) {
+    float x = static_cast<float>(as_type<int>(as_type<uint>(static_cast<int>(index)) - as_type<uint>(1)));
+    float y = static_cast<float>(as_type<int>(as_type<uint>(as_type<int>(as_type<uint>(static_cast<int>(index & 1u)) * as_type<uint>(2))) - as_type<uint>(1)));
+    return vs_mainOutput { metal::float4(x, y, 0.0, 1.0) };
+}
+
+
+struct fs_mainOutput {
+    metal::float4 member_1 [[color(0)]];
+};
+fragment fs_mainOutput fs_main(
+) {
+    return fs_mainOutput { metal::float4(1.0, 0.0, 0.0, 1.0) };
+}
+"
+`;
+
+exports[`backends > writes spirv that parses back 1`] = `
+"var<private> global: u32;
+var<private> global_1: vec4<f32> = vec4<f32>(0f, 0f, 0f, 1f);
+var<private> global_2: vec4<f32>;
+
+fn function_() {
+    let _e9 = global;
+    global_1 = vec4<f32>(f32((bitcast<i32>(_e9) - 1i)), f32(((bitcast<i32>((_e9 & 1u)) * 2i) - 1i)), 0f, 1f);
+    let _e20 = global_1[1u];
+    global_1[1u] = -(_e20);
+    return;
+}
+
+fn function_1() {
+    global_2 = vec4<f32>(1f, 0f, 0f, 1f);
+    return;
+}
+
+@vertex 
+fn vs_main(@builtin(vertex_index) param: u32) -> @builtin(position) vec4<f32> {
+    global = param;
+    function_();
+    let _e4 = global_1.y;
+    global_1.y = -(_e4);
+    let _e6 = global_1;
+    return _e6;
+}
+
+@fragment 
+fn fs_main() -> @location(0) vec4<f32> {
+    function_1();
+    let _e1 = global_2;
+    return _e1;
+}
+"
+`;
+
+exports[`backends > writes wgsl 1`] = `
+"@vertex 
+fn vs_main(@builtin(vertex_index) index: u32) -> @builtin(position) vec4<f32> {
+    let x = f32((i32(index) - 1i));
+    let y = f32(((i32((index & 1u)) * 2i) - 1i));
+    return vec4<f32>(x, y, 0f, 1f);
+}
+
+@fragment 
+fn fs_main() -> @location(0) vec4<f32> {
+    return vec4<f32>(1f, 0f, 0f, 1f);
+}
+"
+`;
+
+exports[`errors > formats parse errors 1`] = `
+"error: expected identifier, found "{"
+  ┌─ wgsl:1:10
+  │
+1 │ fn main( {
+  │          ^ expected identifier
+
+"
+`;
+
+exports[`errors > formats validation errors 1`] = `
+"error: Global variable [0] 'data' is invalid
+  ┌─ wgsl:1:1
+  │
+1 │ var<storage> data: array<f32>;
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ naga::ir::GlobalVariable [0]
+  │
+  = Binding decoration is missing or not applicable
+
+"
+`;
+
+exports[`frontends > parses glsl 1`] = `
+"struct FragmentOutput {
+    @location(0) o_color: vec4<f32>,
+}
+
+var<private> v_color_1: vec3<f32>;
+var<private> o_color: vec4<f32>;
+
+fn main_1() {
+    let _e2 = v_color_1;
+    o_color = vec4<f32>(_e2.x, _e2.y, _e2.z, 1f);
+    return;
+}
+
+@fragment 
+fn main(@location(0) v_color: vec3<f32>) -> FragmentOutput {
+    v_color_1 = v_color;
+    main_1();
+    let _e7 = o_color;
+    return FragmentOutput(_e7);
+}
+"
+`;
+
+exports[`translate > passes frontend options 1`] = `
+"struct FragmentOutput {
+    @location(0) o_color: vec4<f32>,
+}
+
+var<private> v_color_1: vec3<f32>;
+var<private> o_color: vec4<f32>;
+
+fn main_1() {
+    let _e2 = v_color_1;
+    o_color = vec4<f32>(_e2.x, _e2.y, _e2.z, 1f);
+    return;
+}
+
+@fragment 
+fn main(@location(0) v_color: vec3<f32>) -> FragmentOutput {
+    v_color_1 = v_color;
+    main_1();
+    let _e7 = o_color;
+    return FragmentOutput(_e7);
+}
+"
+`;
+
+exports[`translate > returns spirv words 1`] = `
+"var<private> global: u32;
+var<private> global_1: vec4<f32> = vec4<f32>(0f, 0f, 0f, 1f);
+var<private> global_2: vec4<f32>;
+
+fn function_() {
+    let _e9 = global;
+    global_1 = vec4<f32>(f32((bitcast<i32>(_e9) - 1i)), f32(((bitcast<i32>((_e9 & 1u)) * 2i) - 1i)), 0f, 1f);
+    let _e20 = global_1[1u];
+    global_1[1u] = -(_e20);
+    return;
+}
+
+fn function_1() {
+    global_2 = vec4<f32>(1f, 0f, 0f, 1f);
+    return;
+}
+
+@vertex 
+fn vs_main(@builtin(vertex_index) param: u32) -> @builtin(position) vec4<f32> {
+    global = param;
+    function_();
+    let _e4 = global_1.y;
+    global_1.y = -(_e4);
+    let _e6 = global_1;
+    return _e6;
+}
+
+@fragment 
+fn fs_main() -> @location(0) vec4<f32> {
+    function_1();
+    let _e1 = global_2;
+    return _e1;
+}
 "
 `;

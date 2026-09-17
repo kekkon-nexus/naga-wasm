@@ -1,22 +1,70 @@
-use serde::Deserialize;
-use upstream::back::glsl;
+mod options;
+
+use serde::de::DeserializeOwned;
+use upstream::back::{glsl, hlsl, msl, spv, wgsl};
 use upstream::valid::{Capabilities, ValidationFlags, Validator};
 use wasm_bindgen::prelude::*;
+
+use crate::options::{
+    GlslParseOptions, GlslWriteOptions, HlslWriteOptions, MslWriteOptions,
+};
 
 #[wasm_bindgen]
 pub struct Module {
     module: upstream::Module,
     source: String,
+    path: &'static str,
 }
 
 #[wasm_bindgen]
 pub struct ModuleInfo(upstream::valid::ModuleInfo);
 
+fn options<T: DeserializeOwned + Default>(
+    options: JsValue,
+) -> Result<T, JsError> {
+    let options: Option<T> = serde_wasm_bindgen::from_value(options)?;
+    Ok(options.unwrap_or_default())
+}
+
 #[wasm_bindgen(js_name = parseWgsl)]
 pub fn parse_wgsl(source: String) -> Result<Module, JsError> {
     match upstream::front::wgsl::parse_str(&source) {
-        Ok(module) => Ok(Module { module, source }),
+        Ok(module) => Ok(Module {
+            module,
+            source,
+            path: "wgsl",
+        }),
         Err(error) => Err(JsError::new(&error.emit_to_string(&source))),
+    }
+}
+
+#[wasm_bindgen(js_name = parseGlsl)]
+pub fn parse_glsl(
+    source: String,
+    #[wasm_bindgen(unchecked_param_type = "GlslParseOptions")] options: JsValue,
+) -> Result<Module, JsError> {
+    let options: GlslParseOptions = serde_wasm_bindgen::from_value(options)?;
+    match upstream::front::glsl::Frontend::default()
+        .parse(&options.into(), &source)
+    {
+        Ok(module) => Ok(Module {
+            module,
+            source,
+            path: "glsl",
+        }),
+        Err(error) => Err(JsError::new(&error.emit_to_string(&source))),
+    }
+}
+
+#[wasm_bindgen(js_name = parseSpirv)]
+pub fn parse_spirv(bytes: &[u8]) -> Result<Module, JsError> {
+    match upstream::front::spv::parse_u8_slice(bytes, &Default::default()) {
+        Ok(module) => Ok(Module {
+            module,
+            source: String::new(),
+            path: "spv",
+        }),
+        Err(error) => Err(JsError::new(&error.emit_to_string(""))),
     }
 }
 
@@ -25,49 +73,43 @@ pub fn validate(module: &Module) -> Result<ModuleInfo, JsError> {
     Validator::new(ValidationFlags::all(), Capabilities::all())
         .validate(&module.module)
         .map(ModuleInfo)
-        .map_err(|error| JsError::new(&error.emit_to_string(&module.source)))
+        .map_err(|error| {
+            JsError::new(
+                &error.emit_to_string_with_path(&module.source, module.path),
+            )
+        })
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct GlslOptions {
-    version: String,
-    stage: Stage,
-    entry_point: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "lowercase")]
-enum Stage {
-    Vertex,
-    Fragment,
-    Compute,
+#[wasm_bindgen(js_name = writeWgsl)]
+pub fn write_wgsl(
+    module: &Module,
+    info: &ModuleInfo,
+) -> Result<String, JsError> {
+    Ok(wgsl::write_string(
+        &module.module,
+        &info.0,
+        wgsl::WriterFlags::empty(),
+    )?)
 }
 
 #[wasm_bindgen(js_name = writeGlsl)]
 pub fn write_glsl(
     module: &Module,
     info: &ModuleInfo,
-    options: JsValue,
+    #[wasm_bindgen(unchecked_param_type = "GlslWriteOptions")] options: JsValue,
 ) -> Result<String, JsError> {
-    let options: GlslOptions = serde_wasm_bindgen::from_value(options)?;
-    let shader_stage = match options.stage {
-        Stage::Vertex => upstream::ShaderStage::Vertex,
-        Stage::Fragment => upstream::ShaderStage::Fragment,
-        Stage::Compute => upstream::ShaderStage::Compute,
-    };
-
+    let options: GlslWriteOptions = serde_wasm_bindgen::from_value(options)?;
     let mut out = String::new();
     glsl::Writer::new(
         &mut out,
         &module.module,
         &info.0,
         &glsl::Options {
-            version: glsl_version(&options.version)?,
+            version: options::glsl_version(&options.version)?,
             ..Default::default()
         },
         &glsl::PipelineOptions {
-            shader_stage,
+            shader_stage: options.stage.into(),
             entry_point: options.entry_point,
             multiview: None,
         },
@@ -77,17 +119,57 @@ pub fn write_glsl(
     Ok(out)
 }
 
-fn glsl_version(version: &str) -> Result<glsl::Version, JsError> {
-    let (number, es) = match version.strip_suffix(" es") {
-        Some(number) => (number, true),
-        None => (version, false),
-    };
-    let number = number.parse().map_err(|_| {
-        JsError::new(&format!("invalid GLSL version: {version}"))
-    })?;
-    Ok(if es {
-        glsl::Version::new_gles(number)
-    } else {
-        glsl::Version::Desktop(number)
-    })
+#[wasm_bindgen(js_name = writeHlsl)]
+pub fn write_hlsl(
+    module: &Module,
+    info: &ModuleInfo,
+    #[wasm_bindgen(unchecked_optional_param_type = "HlslWriteOptions")]
+    options: JsValue,
+) -> Result<String, JsError> {
+    let options: HlslWriteOptions = self::options(options)?;
+    let mut hlsl_options = hlsl::Options::default();
+    if let Some(model) = options.shader_model {
+        hlsl_options.shader_model = options::shader_model(&model)?;
+    }
+    let mut out = String::new();
+    hlsl::Writer::new(&mut out, &hlsl_options, &Default::default()).write(
+        &module.module,
+        &info.0,
+        None,
+    )?;
+    Ok(out)
+}
+
+#[wasm_bindgen(js_name = writeMsl)]
+pub fn write_msl(
+    module: &Module,
+    info: &ModuleInfo,
+    #[wasm_bindgen(unchecked_optional_param_type = "MslWriteOptions")]
+    options: JsValue,
+) -> Result<String, JsError> {
+    let options: MslWriteOptions = self::options(options)?;
+    let mut msl_options = msl::Options::default();
+    if let Some(version) = options.lang_version {
+        msl_options.lang_version = version;
+    }
+    let (out, _) = msl::write_string(
+        &module.module,
+        &info.0,
+        &msl_options,
+        &Default::default(),
+    )?;
+    Ok(out)
+}
+
+#[wasm_bindgen(js_name = writeSpirv)]
+pub fn write_spirv(
+    module: &Module,
+    info: &ModuleInfo,
+) -> Result<Vec<u32>, JsError> {
+    Ok(spv::write_vec(
+        &module.module,
+        &info.0,
+        &Default::default(),
+        None,
+    )?)
 }
