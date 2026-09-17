@@ -7,6 +7,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::options::{
     GlslParseOptions, GlslWriteOptions, HlslWriteOptions, MslWriteOptions,
+    SpirvWriteOptions, WgslWriteOptions,
 };
 
 #[wasm_bindgen]
@@ -84,12 +85,13 @@ pub fn validate(module: &Module) -> Result<ModuleInfo, JsError> {
 pub fn write_wgsl(
     module: &Module,
     info: &ModuleInfo,
+    #[wasm_bindgen(unchecked_optional_param_type = "WgslWriteOptions")]
+    options: JsValue,
 ) -> Result<String, JsError> {
-    Ok(wgsl::write_string(
-        &module.module,
-        &info.0,
-        wgsl::WriterFlags::empty(),
-    )?)
+    let options: WgslWriteOptions = self::options(options)?;
+    let mut flags = wgsl::WriterFlags::empty();
+    options.flags.unwrap_or_default().apply(&mut flags);
+    Ok(wgsl::write_string(&module.module, &info.0, flags)?)
 }
 
 #[wasm_bindgen(js_name = writeGlsl)]
@@ -99,15 +101,20 @@ pub fn write_glsl(
     #[wasm_bindgen(unchecked_param_type = "GlslWriteOptions")] options: JsValue,
 ) -> Result<String, JsError> {
     let options: GlslWriteOptions = serde_wasm_bindgen::from_value(options)?;
+    let mut glsl_options = glsl::Options {
+        version: options::glsl_version(&options.version)?,
+        ..Default::default()
+    };
+    options
+        .flags
+        .unwrap_or_default()
+        .apply(&mut glsl_options.writer_flags);
     let mut out = String::new();
     glsl::Writer::new(
         &mut out,
         &module.module,
         &info.0,
-        &glsl::Options {
-            version: options::glsl_version(&options.version)?,
-            ..Default::default()
-        },
+        &glsl_options,
         &glsl::PipelineOptions {
             shader_stage: options.stage.into(),
             entry_point: options.entry_point,
@@ -165,11 +172,14 @@ pub fn write_msl(
 pub fn write_spirv(
     module: &Module,
     info: &ModuleInfo,
+    #[wasm_bindgen(unchecked_optional_param_type = "SpirvWriteOptions")]
+    options: JsValue,
 ) -> Result<Vec<u32>, JsError> {
-    Ok(spv::write_vec(
-        &module.module,
-        &info.0,
-        &Default::default(),
-        None,
-    )?)
+    let options: SpirvWriteOptions = self::options(options)?;
+    let mut spv_options = spv::Options::default();
+    options
+        .flags
+        .unwrap_or_default()
+        .apply(&mut spv_options.flags);
+    Ok(spv::write_vec(&module.module, &info.0, &spv_options, None)?)
 }

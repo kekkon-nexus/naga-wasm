@@ -71,19 +71,31 @@ const hlsl = writeHlsl(module, info, { shaderModel: "6_0" });
 
 Handles hold WebAssembly memory. Release them with `using` or `free()`.
 
-| Function                                                  | Returns       |
-| --------------------------------------------------------- | ------------- |
-| `parseWgsl(source)`                                       | `Module`      |
-| `parseGlsl(source, { stage, defines? })`                  | `Module`      |
-| `parseSpirv(words)`                                       | `Module`      |
-| `validate(module)`                                        | `ModuleInfo`  |
-| `writeWgsl(module, info)`                                 | `string`      |
-| `writeGlsl(module, info, { version, stage, entryPoint })` | `string`      |
-| `writeHlsl(module, info, { shaderModel? })`               | `string`      |
-| `writeMsl(module, info, { langVersion? })`                | `string`      |
-| `writeSpirv(module, info)`                                | `Uint32Array` |
+| Function                                                          | Returns       |
+| ----------------------------------------------------------------- | ------------- |
+| `parseWgsl(source)`                                               | `Module`      |
+| `parseGlsl(source, { stage, defines? })`                          | `Module`      |
+| `parseSpirv(words)`                                               | `Module`      |
+| `validate(module)`                                                | `ModuleInfo`  |
+| `writeWgsl(module, info, { flags? })`                             | `string`      |
+| `writeGlsl(module, info, { version, stage, entryPoint, flags? })` | `string`      |
+| `writeHlsl(module, info, { shaderModel? })`                       | `string`      |
+| `writeMsl(module, info, { langVersion? })`                        | `string`      |
+| `writeSpirv(module, info, { flags? })`                            | `Uint32Array` |
 
 `parseSpirv` accepts a `Uint8Array` or `Uint32Array`.
+
+`flags` override naga's writer flags one at a time and keep the rest at their
+defaults:
+
+```ts
+writeGlsl(module, info, {
+	version: "300 es",
+	stage: "vertex",
+	entryPoint: "vs_main",
+	flags: { forcePointSize: true },
+});
+```
 
 ### Errors
 

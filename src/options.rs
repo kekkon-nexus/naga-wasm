@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
-use upstream::back::{glsl, hlsl};
+use upstream::back::{glsl, hlsl, spv, wgsl};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -13,10 +13,24 @@ export interface GlslParseOptions {
 	defines?: Record<string, string>;
 }
 
+export interface WgslWriteOptions {
+	flags?: {
+		explicitTypes?: boolean;
+	};
+}
+
 export interface GlslWriteOptions {
 	version: `${number}` | `${number} es`;
 	stage: ShaderStage;
 	entryPoint: string;
+	flags?: {
+		/** @default true */
+		adjustCoordinateSpace?: boolean;
+		forcePointSize?: boolean;
+		textureShadowLod?: boolean;
+		drawParameters?: boolean;
+		includeUnusedItems?: boolean;
+	};
 }
 
 export interface HlslWriteOptions {
@@ -25,6 +39,19 @@ export interface HlslWriteOptions {
 
 export interface MslWriteOptions {
 	langVersion?: [major: number, minor: number];
+}
+
+export interface SpirvWriteOptions {
+	flags?: {
+		/** @default true */
+		adjustCoordinateSpace?: boolean;
+		/** @default true */
+		labelVaryings?: boolean;
+		/** @default true */
+		clampFragDepth?: boolean;
+		forcePointSize?: boolean;
+		debug?: boolean;
+	};
 }
 "#;
 
@@ -61,12 +88,59 @@ impl From<GlslParseOptions> for upstream::front::glsl::Options {
     }
 }
 
+#[derive(Deserialize, Default)]
+pub struct WgslWriteOptions {
+    pub flags: Option<WgslFlags>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct WgslFlags {
+    explicit_types: Option<bool>,
+}
+
+impl WgslFlags {
+    pub fn apply(self, flags: &mut wgsl::WriterFlags) {
+        if let Some(value) = self.explicit_types {
+            flags.set(wgsl::WriterFlags::EXPLICIT_TYPES, value);
+        }
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GlslWriteOptions {
     pub version: String,
     pub stage: Stage,
     pub entry_point: String,
+    pub flags: Option<GlslFlags>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct GlslFlags {
+    adjust_coordinate_space: Option<bool>,
+    force_point_size: Option<bool>,
+    texture_shadow_lod: Option<bool>,
+    draw_parameters: Option<bool>,
+    include_unused_items: Option<bool>,
+}
+
+impl GlslFlags {
+    pub fn apply(self, flags: &mut glsl::WriterFlags) {
+        use glsl::WriterFlags as F;
+        for (flag, value) in [
+            (F::ADJUST_COORDINATE_SPACE, self.adjust_coordinate_space),
+            (F::FORCE_POINT_SIZE, self.force_point_size),
+            (F::TEXTURE_SHADOW_LOD, self.texture_shadow_lod),
+            (F::DRAW_PARAMETERS, self.draw_parameters),
+            (F::INCLUDE_UNUSED_ITEMS, self.include_unused_items),
+        ] {
+            if let Some(value) = value {
+                flags.set(flag, value);
+            }
+        }
+    }
 }
 
 #[derive(Deserialize, Default)]
@@ -79,6 +153,38 @@ pub struct HlslWriteOptions {
 #[serde(rename_all = "camelCase")]
 pub struct MslWriteOptions {
     pub lang_version: Option<(u8, u8)>,
+}
+
+#[derive(Deserialize, Default)]
+pub struct SpirvWriteOptions {
+    pub flags: Option<SpirvFlags>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SpirvFlags {
+    adjust_coordinate_space: Option<bool>,
+    label_varyings: Option<bool>,
+    clamp_frag_depth: Option<bool>,
+    force_point_size: Option<bool>,
+    debug: Option<bool>,
+}
+
+impl SpirvFlags {
+    pub fn apply(self, flags: &mut spv::WriterFlags) {
+        use spv::WriterFlags as F;
+        for (flag, value) in [
+            (F::ADJUST_COORDINATE_SPACE, self.adjust_coordinate_space),
+            (F::LABEL_VARYINGS, self.label_varyings),
+            (F::CLAMP_FRAG_DEPTH, self.clamp_frag_depth),
+            (F::FORCE_POINT_SIZE, self.force_point_size),
+            (F::DEBUG, self.debug),
+        ] {
+            if let Some(value) = value {
+                flags.set(flag, value);
+            }
+        }
+    }
 }
 
 pub fn glsl_version(version: &str) -> Result<glsl::Version, JsError> {

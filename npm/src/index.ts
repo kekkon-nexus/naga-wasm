@@ -6,6 +6,8 @@ import type {
 	Module,
 	ModuleInfo,
 	MslWriteOptions,
+	SpirvWriteOptions,
+	WgslWriteOptions,
 } from "./wasm/naga.js";
 
 export { default as init } from "./wasm/naga.js";
@@ -18,6 +20,8 @@ export type {
 	ModuleInfo,
 	MslWriteOptions,
 	ShaderStage,
+	SpirvWriteOptions,
+	WgslWriteOptions,
 } from "./wasm/naga.js";
 export { nagaVersion } from "./version.js";
 
@@ -80,7 +84,8 @@ type TranslateFrom =
 	| { from: "spirv"; source: Uint8Array | Uint32Array };
 
 type TranslateTo =
-	| { to: "wgsl" | "spirv" }
+	| { to: "wgsl"; options?: WgslWriteOptions }
+	| { to: "spirv"; options?: SpirvWriteOptions }
 	| { to: "glsl"; options: GlslWriteOptions }
 	| { to: "hlsl"; options?: HlslWriteOptions }
 	| { to: "msl"; options?: MslWriteOptions };
@@ -108,7 +113,7 @@ function write(
 ): string | Uint32Array {
 	switch (output.to) {
 		case "wgsl": {
-			return writeWgsl(module, info);
+			return writeWgsl(module, info, output.options);
 		}
 		case "glsl": {
 			return writeGlsl(module, info, output.options);
@@ -120,7 +125,7 @@ function write(
 			return writeMsl(module, info, output.options);
 		}
 		case "spirv": {
-			return writeSpirv(module, info);
+			return writeSpirv(module, info, output.options);
 		}
 	}
 }

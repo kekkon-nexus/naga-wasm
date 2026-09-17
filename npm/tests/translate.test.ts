@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import {
+	type GlslWriteOptions,
 	NagaError,
 	parseGlsl,
 	parseSpirv,
@@ -62,6 +63,52 @@ describe("backends", () => {
 
 		const roundtrip = parseSpirv(words);
 		expect(writeWgsl(roundtrip, validate(roundtrip))).toMatchSnapshot();
+	});
+});
+
+describe("writer flags", () => {
+	const module = parseWgsl(triangle);
+	const info = validate(module);
+	const vertex = (flags?: GlslWriteOptions["flags"]) =>
+		writeGlsl(module, info, {
+			version: "300 es",
+			stage: "vertex",
+			entryPoint: "vs_main",
+			flags,
+		});
+
+	it("overrides glsl defaults", () => {
+		expect(vertex()).toContain("gl_Position.yz");
+		expect(vertex({ adjustCoordinateSpace: false })).not.toContain(
+			"gl_Position.yz",
+		);
+	});
+
+	it("keeps glsl defaults that are not overridden", () => {
+		const glsl = vertex({ forcePointSize: true });
+		expect(glsl).toContain("gl_PointSize");
+		expect(glsl).toContain("gl_Position.yz");
+	});
+
+	it("sets wgsl flags", () => {
+		expect(writeWgsl(module, info)).toContain("let x = ");
+		expect(
+			writeWgsl(module, info, { flags: { explicitTypes: true } }),
+		).toContain("let x: f32 = ");
+	});
+
+	it("sets spirv flags", () => {
+		const words = writeSpirv(module, info);
+		expect(
+			writeSpirv(module, info, { flags: { adjustCoordinateSpace: false } }),
+		).not.toEqual(words);
+		expect(
+			writeSpirv(module, info, { flags: { debug: true } }).length,
+		).toBeGreaterThan(words.length);
+	});
+
+	it("accepts undefined flags", () => {
+		expect(vertex(undefined)).toBe(vertex());
 	});
 });
 
