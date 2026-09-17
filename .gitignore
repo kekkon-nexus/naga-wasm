@@ -3,5 +3,4 @@
 /dist
 
 # Build
-/npm/dist
 *.tsbuildinfo

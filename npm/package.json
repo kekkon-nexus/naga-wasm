@@ -20,12 +20,15 @@
 	],
 	"repository": "kekkon-nexus/naga-wasm",
 	"files": [
-		"dist"
+		"dist",
+		"LICENSE-APACHE",
+		"LICENSE-MIT"
 	],
 	"type": "module",
 	"sideEffects": false,
 	"exports": {
 		".": {
+			"dev": "./src/index.ts",
 			"types": "./dist/index.d.ts",
 			"node": "./dist/node.js",
 			"default": "./dist/index.js"
@@ -34,6 +37,9 @@
 	},
 	"publishConfig": {
 		"access": "public"
+	},
+	"scripts": {
+		"prepack": "bun scripts/build.ts"
 	},
 	"engines": {
 		"node": ">=24.12"

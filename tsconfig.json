@@ -1,9 +1,13 @@
 {
+	"$schema": "https://www.schemastore.org/tsconfig",
 	"extends": ["@kekkon-nexus/config/ts", "@kekkon-nexus/config/ts/strict"],
 	"compilerOptions": {
-		"types": ["bun", "node"],
+		"customConditions": ["dev"],
 		"rootDirs": ["npm/src", "npm/dist"],
-		"noEmit": true
+
+		"noEmit": true,
+		"types": ["bun"],
+		"skipLibCheck": true
 	},
-	"exclude": ["npm/dist"]
+	"exclude": ["./npm/dist"]
 }

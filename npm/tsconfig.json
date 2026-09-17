@@ -1,14 +1,12 @@
 {
+	"$schema": "https://www.schemastore.org/tsconfig",
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
-		"composite": false,
 		"noEmit": false,
-		"declaration": true,
-		"lib": ["esnext", "dom"],
-		"types": ["node"],
+		"sourceMap": true,
+
 		"rootDir": "src",
-		"rootDirs": ["src", "dist"],
 		"outDir": "dist"
 	},
-	"include": ["src"]
+	"include": ["src/**/*.ts"]
 }

@@ -2,7 +2,7 @@ import { $, file } from "bun";
 
 import { nagaVersion } from "../src/version.ts";
 
-$.cwd(new URL("../../", import.meta.url).pathname);
+process.chdir(new URL("../../", import.meta.url).pathname);
 
 const lockfile = await file("Cargo.lock").text();
 const locked = /name = "wasm-bindgen"\nversion = "(.+)"/.exec(lockfile)?.[1];
@@ -23,7 +23,7 @@ if (pinned !== nagaVersion) {
 }
 
 await $`cargo build --release --target wasm32-unknown-unknown`;
-await $`rm -rf npm/dist`;
 await $`wasm-bindgen --target web --weak-refs --out-dir npm/dist/wasm --out-name naga target/wasm32-unknown-unknown/release/naga_wasm.wasm`;
 await $`wasm-opt -Oz npm/dist/wasm/naga_bg.wasm -o npm/dist/wasm/naga_bg.wasm`;
 await $`tsc -p npm`;
+await $`cp LICENSE-MIT LICENSE-APACHE npm`;
