@@ -1,0 +1,42 @@
+name: Upstream
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions-rust-lang/setup-rust-toolchain@v2
+        with:
+          rustflags: ""
+      - uses: oven-sh/setup-bun@v2
+      - id: check
+        run: bun npm/scripts/check-upstream.ts
+      - if: steps.check.outputs.version
+        run: cargo update --package naga
+      - if: steps.check.outputs.version
+        id: pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          # PRs opened with GITHUB_TOKEN do not trigger CI, so auto-merge would never proceed
+          token: ${{ secrets.UPSTREAM_TOKEN }}
+          branch: upstream/naga-${{ steps.check.outputs.version }}
+          commit-message: "build: bump naga to ${{ steps.check.outputs.version }}"
+          title: "build: bump naga to ${{ steps.check.outputs.version }}"
+          body: Bumps the bundled naga to ${{ steps.check.outputs.version }} (${{ steps.check.outputs.kind }} upstream release).
+          labels: ${{ steps.check.outputs.kind == 'major' && 'upstream-major' || '' }}
+      - if: steps.pr.outputs.pull-request-number && steps.check.outputs.kind != 'major'
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_TOKEN }}
+        run: gh pr merge --auto --squash "${{ steps.pr.outputs.pull-request-number }}"

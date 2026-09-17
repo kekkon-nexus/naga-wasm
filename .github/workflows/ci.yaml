@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_call: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: bun run test
+      - run: bun run check
+      - run: npm pack --dry-run --ignore-scripts
+        working-directory: npm
+      - name: Report wasm size
+        run: |
+          wasm=npm/dist/wasm/naga_bg.wasm
+          echo "naga_bg.wasm: $(stat -c %s $wasm) bytes, $(gzip -9c $wasm | wc -c) bytes gzipped" >> "$GITHUB_STEP_SUMMARY"

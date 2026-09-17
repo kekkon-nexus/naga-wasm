@@ -1,0 +1,27 @@
+name: Setup
+description: Install Rust, wasm-bindgen, wasm-opt, Node and bun dependencies
+
+runs:
+  using: composite
+  steps:
+    - uses: actions-rust-lang/setup-rust-toolchain@v2
+      with:
+        rustflags: ""
+    - id: wasm-bindgen
+      shell: bash
+      run: echo "version=$(grep -A1 '^name = "wasm-bindgen"$' Cargo.lock | sed -n 's/^version = "\(.*\)"$/\1/p')" >> "$GITHUB_OUTPUT"
+    - uses: taiki-e/install-action@v2
+      with:
+        tool: wasm-bindgen@${{ steps.wasm-bindgen.outputs.version }}
+    - uses: jdx/mise-action@v4
+      with:
+        mise_toml: |
+          [tools]
+          "aqua:WebAssembly/binaryen" = "132"
+    - uses: actions/setup-node@v7
+      with:
+        node-version: lts/*
+        registry-url: https://registry.npmjs.org
+    - uses: oven-sh/setup-bun@v2
+    - shell: bash
+      run: bun ci
