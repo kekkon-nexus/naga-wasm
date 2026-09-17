@@ -59,7 +59,7 @@ if (semver.order(latest, nagaVersion) > 0) {
 		),
 	);
 
-	console.log(`naga ${nagaVersion} -> ${latest} (${kind})`);
+	console.info(`naga ${nagaVersion} -> ${latest} (${kind})`);
 	if (process.env["GITHUB_OUTPUT"]) {
 		await appendFile(
 			process.env["GITHUB_OUTPUT"],
@@ -67,5 +67,5 @@ if (semver.order(latest, nagaVersion) > 0) {
 		);
 	}
 } else {
-	console.log(`naga ${nagaVersion} is up to date`);
+	console.info(`naga ${nagaVersion} is up to date`);
 }
