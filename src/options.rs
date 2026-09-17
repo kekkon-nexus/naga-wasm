@@ -49,15 +49,14 @@ impl From<Stage> for upstream::ShaderStage {
 #[derive(Deserialize)]
 pub struct GlslParseOptions {
     stage: Stage,
-    #[serde(default)]
-    defines: HashMap<String, String>,
+    defines: Option<HashMap<String, String>>,
 }
 
 impl From<GlslParseOptions> for upstream::front::glsl::Options {
     fn from(options: GlslParseOptions) -> Self {
         Self {
             stage: options.stage.into(),
-            defines: options.defines.into_iter().collect(),
+            defines: options.defines.unwrap_or_default().into_iter().collect(),
         }
     }
 }

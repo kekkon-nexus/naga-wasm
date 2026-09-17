@@ -66,6 +66,12 @@ describe("backends", () => {
 });
 
 describe("frontends", () => {
+	it("accepts undefined defines", () => {
+		expect(() =>
+			parseGlsl(color, { stage: "fragment", defines: undefined }),
+		).not.toThrow();
+	});
+
 	it("parses glsl", () => {
 		const module = parseGlsl(color, { stage: "fragment" });
 		expect(writeWgsl(module, validate(module))).toMatchSnapshot();
