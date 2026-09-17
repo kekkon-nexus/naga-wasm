@@ -36,14 +36,14 @@ describe("backends", () => {
 				version: "300 es",
 				stage: "vertex",
 				entryPoint: "vs_main",
-			}),
+			}).code,
 		).toMatchSnapshot();
 		expect(
 			writeGlsl(module, info, {
 				version: "330",
 				stage: "fragment",
 				entryPoint: "fs_main",
-			}),
+			}).code,
 		).toMatchSnapshot();
 	});
 
@@ -66,6 +66,40 @@ describe("backends", () => {
 	});
 });
 
+describe("glsl reflection", () => {
+	const module = parseWgsl(fixture("textured.wgsl"));
+	const info = validate(module);
+
+	it("maps generated names back to bindings", () => {
+		const { code, reflection } = writeGlsl(module, info, {
+			version: "300 es",
+			stage: "fragment",
+			entryPoint: "fs_main",
+		});
+		expect(reflection).toMatchSnapshot();
+		for (const name of [
+			...Object.keys(reflection.textures),
+			...Object.keys(reflection.uniforms),
+		]) {
+			expect(code).toContain(name);
+		}
+	});
+
+	it("applies the binding map", () => {
+		const { code } = writeGlsl(module, info, {
+			version: "310 es",
+			stage: "fragment",
+			entryPoint: "fs_main",
+			bindingMap: [
+				{ group: 0, binding: 0, slot: 1 },
+				{ group: 1, binding: 0, slot: 3 },
+			],
+		});
+		expect(code).toContain("binding = 1) uniform Globals_block_0Fragment");
+		expect(code).toContain("layout(binding = 3) uniform highp sampler2D");
+	});
+});
+
 describe("writer flags", () => {
 	const module = parseWgsl(triangle);
 	const info = validate(module);
@@ -75,7 +109,7 @@ describe("writer flags", () => {
 			stage: "vertex",
 			entryPoint: "vs_main",
 			flags,
-		});
+		}).code;
 
 	it("overrides glsl defaults", () => {
 		expect(vertex()).toContain("gl_Position.yz");

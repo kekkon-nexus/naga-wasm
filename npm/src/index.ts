@@ -12,13 +12,16 @@ import type {
 
 export { default as init } from "./wasm/naga.js";
 export type {
+	GlslOutput,
 	GlslParseOptions,
+	GlslReflection,
 	GlslWriteOptions,
 	HlslWriteOptions,
 	InitInput,
 	Module,
 	ModuleInfo,
 	MslWriteOptions,
+	ResourceBinding,
 	ShaderStage,
 	SpirvWriteOptions,
 	WgslWriteOptions,
@@ -116,7 +119,7 @@ function write(
 			return writeWgsl(module, info, output.options);
 		}
 		case "glsl": {
-			return writeGlsl(module, info, output.options);
+			return writeGlsl(module, info, output.options).code;
 		}
 		case "hlsl": {
 			return writeHlsl(module, info, output.options);
