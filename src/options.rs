@@ -24,6 +24,7 @@ export interface GlslWriteOptions {
 	stage: ShaderStage;
 	entryPoint: string;
 	bindingMap?: { group: number; binding: number; slot: number }[];
+	reflect?: boolean;
 	flags?: {
 		/** @default true */
 		adjustCoordinateSpace?: boolean;
@@ -116,6 +117,7 @@ pub struct GlslWriteOptions {
     pub entry_point: String,
     pub binding_map: Option<Vec<BindingSlot>>,
     pub flags: Option<GlslFlags>,
+    pub reflect: Option<bool>,
 }
 
 #[derive(Deserialize)]

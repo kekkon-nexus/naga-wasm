@@ -61,7 +61,7 @@ import { parseWgsl, validate, writeGlsl, writeHlsl } from "naga-wasm";
 using module = parseWgsl(source);
 using info = validate(module);
 
-const { code, reflection } = writeGlsl(module, info, {
+const glsl = writeGlsl(module, info, {
 	version: "300 es",
 	stage: "fragment",
 	entryPoint: "fs_main",
@@ -78,7 +78,7 @@ Handles hold WebAssembly memory. Release them with `using` or `free()`.
 | `parseSpirv(words)`                                                            | `Module`      |
 | `validate(module)`                                                             | `ModuleInfo`  |
 | `writeWgsl(module, info, { flags? })`                                          | `string`      |
-| `writeGlsl(module, info, { version, stage, entryPoint, bindingMap?, flags? })` | `GlslOutput`  |
+| `writeGlsl(module, info, { version, stage, entryPoint, bindingMap?, flags? })` | `string`      |
 | `writeHlsl(module, info, { shaderModel? })`                                    | `string`      |
 | `writeMsl(module, info, { langVersion? })`                                     | `string`      |
 | `writeSpirv(module, info, { flags? })`                                         | `Uint32Array` |
@@ -89,14 +89,15 @@ Handles hold WebAssembly memory. Release them with `using` or `free()`.
 
 naga merges each texture and sampler pair into one `sampler2D` and wraps
 uniform buffers in blocks, both with generated names. `writeGlsl` returns
-those names mapped back to their WGSL bindings, so a WebGL host can look up
-uniform locations:
+those names mapped back to their WGSL bindings with `reflect: true`, so a
+WebGL host can look up uniform locations:
 
 ```ts
 const { code, reflection } = writeGlsl(module, info, {
 	version: "300 es",
 	stage: "fragment",
 	entryPoint: "fs_main",
+	reflect: true,
 });
 
 reflection.textures;
@@ -117,7 +118,9 @@ writeGlsl(module, info, {
 });
 ```
 
-`translate` with `to: "glsl"` still returns only the code.
+`reflect` is deprecated because `{ code, reflection }` becomes the default
+return in the next major. `translate` with `to: "glsl"` always returns only
+the code.
 
 ### Writer flags
 

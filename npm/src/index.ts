@@ -1,5 +1,6 @@
 import * as wasm from "./wasm/naga.js";
 import type {
+	GlslOutput,
 	GlslParseOptions,
 	GlslWriteOptions,
 	HlslWriteOptions,
@@ -68,10 +69,34 @@ export const parseGlsl = wrap("parse", wasm.parseGlsl);
 const parseSpirvBytes = wrap("parse", wasm.parseSpirv);
 export const validate = wrap("validation", wasm.validate);
 export const writeWgsl = wrap("write", wasm.writeWgsl);
-export const writeGlsl = wrap("write", wasm.writeGlsl);
+const writeGlslOutput = wrap("write", wasm.writeGlsl);
 export const writeHlsl = wrap("write", wasm.writeHlsl);
 export const writeMsl = wrap("write", wasm.writeMsl);
 export const writeSpirv = wrap("write", wasm.writeSpirv);
+
+/** @deprecated `reflect` goes away in the next major, where returning `GlslOutput` becomes the default. */
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions & { reflect: true },
+): GlslOutput;
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions & { reflect?: false },
+): string;
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions,
+): string | GlslOutput;
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions,
+): string | GlslOutput {
+	return writeGlslOutput(module, info, options);
+}
 
 export function parseSpirv(words: Uint8Array | Uint32Array): Module {
 	return parseSpirvBytes(
@@ -119,7 +144,7 @@ function write(
 			return writeWgsl(module, info, output.options);
 		}
 		case "glsl": {
-			return writeGlsl(module, info, output.options).code;
+			return writeGlsl(module, info, { ...output.options, reflect: false });
 		}
 		case "hlsl": {
 			return writeHlsl(module, info, output.options);

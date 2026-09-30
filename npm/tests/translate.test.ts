@@ -36,14 +36,14 @@ describe("backends", () => {
 				version: "300 es",
 				stage: "vertex",
 				entryPoint: "vs_main",
-			}).code,
+			}),
 		).toMatchSnapshot();
 		expect(
 			writeGlsl(module, info, {
 				version: "330",
 				stage: "fragment",
 				entryPoint: "fs_main",
-			}).code,
+			}),
 		).toMatchSnapshot();
 	});
 
@@ -75,6 +75,7 @@ describe("glsl reflection", () => {
 			version: "300 es",
 			stage: "fragment",
 			entryPoint: "fs_main",
+			reflect: true,
 		});
 		expect(reflection).toMatchSnapshot();
 		for (const name of [
@@ -86,7 +87,7 @@ describe("glsl reflection", () => {
 	});
 
 	it("applies the binding map", () => {
-		const { code } = writeGlsl(module, info, {
+		const code = writeGlsl(module, info, {
 			version: "310 es",
 			stage: "fragment",
 			entryPoint: "fs_main",
@@ -109,7 +110,7 @@ describe("writer flags", () => {
 			stage: "vertex",
 			entryPoint: "vs_main",
 			flags,
-		}).code;
+		});
 
 	it("overrides glsl defaults", () => {
 		expect(vertex()).toContain("gl_Position.yz");

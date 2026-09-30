@@ -96,7 +96,7 @@ pub fn write_wgsl(
     Ok(wgsl::write_string(&module.module, &info.0, flags)?)
 }
 
-#[wasm_bindgen(js_name = writeGlsl, unchecked_return_type = "GlslOutput")]
+#[wasm_bindgen(js_name = writeGlsl, unchecked_return_type = "string | GlslOutput")]
 pub fn write_glsl(
     module: &Module,
     info: &ModuleInfo,
@@ -134,7 +134,11 @@ pub fn write_glsl(
         upstream::proc::BoundsCheckPolicies::default(),
     )?
     .write()?;
-    GlslOutput::new(code, &module.module, reflection).into_js()
+    if options.reflect.unwrap_or_default() {
+        GlslOutput::new(code, &module.module, reflection).into_js()
+    } else {
+        Ok(code.into())
+    }
 }
 
 #[wasm_bindgen(js_name = writeHlsl)]
