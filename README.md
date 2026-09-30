@@ -62,28 +62,79 @@ using module = parseWgsl(source);
 using info = validate(module);
 
 const glsl = writeGlsl(module, info, {
-	version: "330",
-	stage: "vertex",
-	entryPoint: "vs_main",
+	version: "300 es",
+	stage: "fragment",
+	entryPoint: "fs_main",
 });
 const hlsl = writeHlsl(module, info, { shaderModel: "6_0" });
 ```
 
 Handles hold WebAssembly memory. Release them with `using` or `free()`.
 
-| Function                                                          | Returns       |
-| ----------------------------------------------------------------- | ------------- |
-| `parseWgsl(source)`                                               | `Module`      |
-| `parseGlsl(source, { stage, defines? })`                          | `Module`      |
-| `parseSpirv(words)`                                               | `Module`      |
-| `validate(module)`                                                | `ModuleInfo`  |
-| `writeWgsl(module, info, { flags? })`                             | `string`      |
-| `writeGlsl(module, info, { version, stage, entryPoint, flags? })` | `string`      |
-| `writeHlsl(module, info, { shaderModel? })`                       | `string`      |
-| `writeMsl(module, info, { langVersion? })`                        | `string`      |
-| `writeSpirv(module, info, { flags? })`                            | `Uint32Array` |
+| Function                                                                                 | Returns       |
+| ---------------------------------------------------------------------------------------- | ------------- |
+| `parseWgsl(source)`                                                                      | `Module`      |
+| `parseGlsl(source, { stage, defines? })`                                                 | `Module`      |
+| `parseSpirv(words)`                                                                      | `Module`      |
+| `validate(module)`                                                                       | `ModuleInfo`  |
+| `writeWgsl(module, info, { flags? })`                                                    | `string`      |
+| `writeGlsl(module, info, { version, stage, entryPoint, bindingMap?, flags?, reflect? })` | `string`      |
+| `writeHlsl(module, info, { shaderModel?, reflect? })`                                    | `string`      |
+| `writeMsl(module, info, { langVersion?, reflect? })`                                     | `string`      |
+| `writeSpirv(module, info, { flags? })`                                                   | `Uint32Array` |
 
 `parseSpirv` accepts a `Uint8Array` or `Uint32Array`.
+
+### GLSL reflection
+
+naga merges each texture and sampler pair into one `sampler2D` and wraps
+uniform buffers in blocks, both with generated names. `writeGlsl` returns
+those names mapped back to their WGSL bindings with `reflect: true`, so a
+WebGL host can look up uniform locations:
+
+```ts
+const { code, reflection } = writeGlsl(module, info, {
+	version: "300 es",
+	stage: "fragment",
+	entryPoint: "fs_main",
+	reflect: true,
+});
+
+reflection.textures;
+// { _group_1_binding_0_fs: { texture: { group: 1, binding: 0 }, sampler: { group: 1, binding: 1 } } }
+reflection.uniforms;
+// { Globals_block_0Fragment: { group: 0, binding: 0 } }
+```
+
+`bindingMap` assigns explicit `layout(binding = N)` slots on GLSL versions
+that support them:
+
+```ts
+writeGlsl(module, info, {
+	version: "310 es",
+	stage: "fragment",
+	entryPoint: "fs_main",
+	bindingMap: [{ group: 1, binding: 0, slot: 3 }],
+});
+```
+
+### HLSL and MSL reflection
+
+With `reflect: true`, `writeHlsl` and `writeMsl` return `{ code, reflection }`
+where `reflection.entryPoints` maps each WGSL entry point to its written name,
+or to an error when naga could not write it:
+
+```ts
+const { reflection } = writeMsl(module, info, { reflect: true });
+reflection.entryPoints;
+// { vs_main: { name: "vs_main" }, fs_main: { name: "fs_main" } }
+```
+
+`reflect` is deprecated on all three writers because `{ code, reflection }`
+becomes the default return in the next major. `translate` always returns only
+the code.
+
+### Writer flags
 
 `flags` override naga's writer flags one at a time and keep the rest at their
 defaults:

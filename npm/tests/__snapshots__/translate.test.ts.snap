@@ -223,6 +223,31 @@ fn main(@location(0) v_color: vec3<f32>) -> FragmentOutput {
 "
 `;
 
+exports[`glsl reflection > maps generated names back to bindings 1`] = `
+{
+  "clipDistanceCount": 0,
+  "textures": {
+    "_group_1_binding_0_fs": {
+      "sampler": {
+        "binding": 1,
+        "group": 1,
+      },
+      "texture": {
+        "binding": 0,
+        "group": 1,
+      },
+    },
+  },
+  "uniforms": {
+    "Globals_block_0Fragment": {
+      "binding": 0,
+      "group": 0,
+    },
+  },
+  "varyings": {},
+}
+`;
+
 exports[`translate > passes frontend options 1`] = `
 "struct FragmentOutput {
     @location(0) o_color: vec4<f32>,

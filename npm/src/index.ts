@@ -1,10 +1,13 @@
 import * as wasm from "./wasm/naga.js";
 import type {
+	GlslOutput,
 	GlslParseOptions,
 	GlslWriteOptions,
+	HlslOutput,
 	HlslWriteOptions,
 	Module,
 	ModuleInfo,
+	MslOutput,
 	MslWriteOptions,
 	SpirvWriteOptions,
 	WgslWriteOptions,
@@ -12,13 +15,19 @@ import type {
 
 export { default as init } from "./wasm/naga.js";
 export type {
+	EntryPointReflection,
+	GlslOutput,
 	GlslParseOptions,
+	GlslReflection,
 	GlslWriteOptions,
+	HlslOutput,
 	HlslWriteOptions,
 	InitInput,
 	Module,
 	ModuleInfo,
+	MslOutput,
 	MslWriteOptions,
+	ResourceBinding,
 	ShaderStage,
 	SpirvWriteOptions,
 	WgslWriteOptions,
@@ -65,10 +74,79 @@ export const parseGlsl = wrap("parse", wasm.parseGlsl);
 const parseSpirvBytes = wrap("parse", wasm.parseSpirv);
 export const validate = wrap("validation", wasm.validate);
 export const writeWgsl = wrap("write", wasm.writeWgsl);
-export const writeGlsl = wrap("write", wasm.writeGlsl);
-export const writeHlsl = wrap("write", wasm.writeHlsl);
-export const writeMsl = wrap("write", wasm.writeMsl);
+const writeGlslOutput = wrap("write", wasm.writeGlsl);
+const writeHlslOutput = wrap("write", wasm.writeHlsl);
+const writeMslOutput = wrap("write", wasm.writeMsl);
 export const writeSpirv = wrap("write", wasm.writeSpirv);
+
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions & { reflect: true },
+): GlslOutput;
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions & { reflect?: false },
+): string;
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions,
+): string | GlslOutput;
+export function writeGlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: GlslWriteOptions,
+): string | GlslOutput {
+	return writeGlslOutput(module, info, options);
+}
+
+export function writeHlsl(
+	module: Module,
+	info: ModuleInfo,
+	options: HlslWriteOptions & { reflect: true },
+): HlslOutput;
+export function writeHlsl(
+	module: Module,
+	info: ModuleInfo,
+	options?: HlslWriteOptions & { reflect?: false },
+): string;
+export function writeHlsl(
+	module: Module,
+	info: ModuleInfo,
+	options?: HlslWriteOptions,
+): string | HlslOutput;
+export function writeHlsl(
+	module: Module,
+	info: ModuleInfo,
+	options?: HlslWriteOptions,
+): string | HlslOutput {
+	return writeHlslOutput(module, info, options);
+}
+
+export function writeMsl(
+	module: Module,
+	info: ModuleInfo,
+	options: MslWriteOptions & { reflect: true },
+): MslOutput;
+export function writeMsl(
+	module: Module,
+	info: ModuleInfo,
+	options?: MslWriteOptions & { reflect?: false },
+): string;
+export function writeMsl(
+	module: Module,
+	info: ModuleInfo,
+	options?: MslWriteOptions,
+): string | MslOutput;
+export function writeMsl(
+	module: Module,
+	info: ModuleInfo,
+	options?: MslWriteOptions,
+): string | MslOutput {
+	return writeMslOutput(module, info, options);
+}
 
 export function parseSpirv(words: Uint8Array | Uint32Array): Module {
 	return parseSpirvBytes(
@@ -116,13 +194,13 @@ function write(
 			return writeWgsl(module, info, output.options);
 		}
 		case "glsl": {
-			return writeGlsl(module, info, output.options);
+			return writeGlsl(module, info, { ...output.options, reflect: false });
 		}
 		case "hlsl": {
-			return writeHlsl(module, info, output.options);
+			return writeHlsl(module, info, { ...output.options, reflect: false });
 		}
 		case "msl": {
-			return writeMsl(module, info, output.options);
+			return writeMsl(module, info, { ...output.options, reflect: false });
 		}
 		case "spirv": {
 			return writeSpirv(module, info, output.options);

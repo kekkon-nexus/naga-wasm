@@ -66,6 +66,55 @@ describe("backends", () => {
 	});
 });
 
+describe("glsl reflection", () => {
+	const module = parseWgsl(fixture("textured.wgsl"));
+	const info = validate(module);
+
+	it("maps generated names back to bindings", () => {
+		const { code, reflection } = writeGlsl(module, info, {
+			version: "300 es",
+			stage: "fragment",
+			entryPoint: "fs_main",
+			reflect: true,
+		});
+		expect(reflection).toMatchSnapshot();
+		for (const name of [
+			...Object.keys(reflection.textures),
+			...Object.keys(reflection.uniforms),
+		]) {
+			expect(code).toContain(name);
+		}
+	});
+
+	it("applies the binding map", () => {
+		const code = writeGlsl(module, info, {
+			version: "310 es",
+			stage: "fragment",
+			entryPoint: "fs_main",
+			bindingMap: [
+				{ group: 0, binding: 0, slot: 1 },
+				{ group: 1, binding: 0, slot: 3 },
+			],
+		});
+		expect(code).toContain("binding = 1) uniform Globals_block_0Fragment");
+		expect(code).toContain("layout(binding = 3) uniform highp sampler2D");
+	});
+});
+
+describe("entry point reflection", () => {
+	const module = parseWgsl(triangle);
+	const info = validate(module);
+
+	it.each([
+		["hlsl", () => writeHlsl(module, info, { reflect: true })],
+		["msl", () => writeMsl(module, info, { reflect: true })],
+	])("maps %s entry point names", (_, write) => {
+		const { entryPoints } = write().reflection;
+		expect(entryPoints).toHaveProperty("vs_main.name");
+		expect(entryPoints).toHaveProperty("fs_main.name");
+	});
+});
+
 describe("writer flags", () => {
 	const module = parseWgsl(triangle);
 	const info = validate(module);

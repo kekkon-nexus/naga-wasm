@@ -23,6 +23,9 @@ export interface GlslWriteOptions {
 	version: `${number}` | `${number} es`;
 	stage: ShaderStage;
 	entryPoint: string;
+	bindingMap?: { group: number; binding: number; slot: number }[];
+	/** @deprecated Goes away in the next major, where returning `{ code, reflection }` becomes the default. */
+	reflect?: boolean;
 	flags?: {
 		/** @default true */
 		adjustCoordinateSpace?: boolean;
@@ -35,10 +38,14 @@ export interface GlslWriteOptions {
 
 export interface HlslWriteOptions {
 	shaderModel?: "5_0" | "5_1" | "6_0" | "6_1" | "6_2" | "6_3" | "6_4" | "6_5" | "6_6" | "6_7" | "6_8" | "6_9";
+	/** @deprecated Goes away in the next major, where returning `{ code, reflection }` becomes the default. */
+	reflect?: boolean;
 }
 
 export interface MslWriteOptions {
 	langVersion?: [major: number, minor: number];
+	/** @deprecated Goes away in the next major, where returning `{ code, reflection }` becomes the default. */
+	reflect?: boolean;
 }
 
 export interface SpirvWriteOptions {
@@ -113,7 +120,16 @@ pub struct GlslWriteOptions {
     pub version: String,
     pub stage: Stage,
     pub entry_point: String,
+    pub binding_map: Option<Vec<BindingSlot>>,
     pub flags: Option<GlslFlags>,
+    pub reflect: Option<bool>,
+}
+
+#[derive(Deserialize)]
+pub struct BindingSlot {
+    pub group: u32,
+    pub binding: u32,
+    pub slot: u8,
 }
 
 #[derive(Deserialize, Default)]
@@ -147,12 +163,14 @@ impl GlslFlags {
 #[serde(rename_all = "camelCase")]
 pub struct HlslWriteOptions {
     pub shader_model: Option<String>,
+    pub reflect: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct MslWriteOptions {
     pub lang_version: Option<(u8, u8)>,
+    pub reflect: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
