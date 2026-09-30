@@ -13,4 +13,4 @@ crate-type = ["cdylib", "rlib"]
 upstream = { package = "naga", version = "=30.0.1", features = ["glsl-in", "glsl-out", "hlsl-out", "msl-out", "spv-in", "spv-out", "wgsl-in", "wgsl-out"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
-wasm-bindgen = "=0.2.128"
+wasm-bindgen = "=0.2.129"
