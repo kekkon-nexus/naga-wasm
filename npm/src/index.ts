@@ -79,7 +79,6 @@ const writeHlslOutput = wrap("write", wasm.writeHlsl);
 const writeMslOutput = wrap("write", wasm.writeMsl);
 export const writeSpirv = wrap("write", wasm.writeSpirv);
 
-/** @deprecated `reflect` goes away in the next major, where returning `GlslOutput` becomes the default. */
 export function writeGlsl(
 	module: Module,
 	info: ModuleInfo,
@@ -103,7 +102,6 @@ export function writeGlsl(
 	return writeGlslOutput(module, info, options);
 }
 
-/** @deprecated `reflect` goes away in the next major, where returning `HlslOutput` becomes the default. */
 export function writeHlsl(
 	module: Module,
 	info: ModuleInfo,
@@ -127,7 +125,6 @@ export function writeHlsl(
 	return writeHlslOutput(module, info, options);
 }
 
-/** @deprecated `reflect` goes away in the next major, where returning `MslOutput` becomes the default. */
 export function writeMsl(
 	module: Module,
 	info: ModuleInfo,

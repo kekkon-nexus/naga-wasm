@@ -24,6 +24,7 @@ export interface GlslWriteOptions {
 	stage: ShaderStage;
 	entryPoint: string;
 	bindingMap?: { group: number; binding: number; slot: number }[];
+	/** @deprecated Goes away in the next major, where returning `{ code, reflection }` becomes the default. */
 	reflect?: boolean;
 	flags?: {
 		/** @default true */
@@ -37,11 +38,13 @@ export interface GlslWriteOptions {
 
 export interface HlslWriteOptions {
 	shaderModel?: "5_0" | "5_1" | "6_0" | "6_1" | "6_2" | "6_3" | "6_4" | "6_5" | "6_6" | "6_7" | "6_8" | "6_9";
+	/** @deprecated Goes away in the next major, where returning `{ code, reflection }` becomes the default. */
 	reflect?: boolean;
 }
 
 export interface MslWriteOptions {
 	langVersion?: [major: number, minor: number];
+	/** @deprecated Goes away in the next major, where returning `{ code, reflection }` becomes the default. */
 	reflect?: boolean;
 }
 
