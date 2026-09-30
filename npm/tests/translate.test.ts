@@ -101,6 +101,20 @@ describe("glsl reflection", () => {
 	});
 });
 
+describe("entry point reflection", () => {
+	const module = parseWgsl(triangle);
+	const info = validate(module);
+
+	it.each([
+		["hlsl", () => writeHlsl(module, info, { reflect: true })],
+		["msl", () => writeMsl(module, info, { reflect: true })],
+	])("maps %s entry point names", (_, write) => {
+		const { entryPoints } = write().reflection;
+		expect(entryPoints).toHaveProperty("vs_main.name");
+		expect(entryPoints).toHaveProperty("fs_main.name");
+	});
+});
+
 describe("writer flags", () => {
 	const module = parseWgsl(triangle);
 	const info = validate(module);

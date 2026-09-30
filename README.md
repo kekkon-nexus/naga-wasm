@@ -71,17 +71,17 @@ const hlsl = writeHlsl(module, info, { shaderModel: "6_0" });
 
 Handles hold WebAssembly memory. Release them with `using` or `free()`.
 
-| Function                                                                       | Returns       |
-| ------------------------------------------------------------------------------ | ------------- |
-| `parseWgsl(source)`                                                            | `Module`      |
-| `parseGlsl(source, { stage, defines? })`                                       | `Module`      |
-| `parseSpirv(words)`                                                            | `Module`      |
-| `validate(module)`                                                             | `ModuleInfo`  |
-| `writeWgsl(module, info, { flags? })`                                          | `string`      |
-| `writeGlsl(module, info, { version, stage, entryPoint, bindingMap?, flags? })` | `string`      |
-| `writeHlsl(module, info, { shaderModel? })`                                    | `string`      |
-| `writeMsl(module, info, { langVersion? })`                                     | `string`      |
-| `writeSpirv(module, info, { flags? })`                                         | `Uint32Array` |
+| Function                                                                                 | Returns       |
+| ---------------------------------------------------------------------------------------- | ------------- |
+| `parseWgsl(source)`                                                                      | `Module`      |
+| `parseGlsl(source, { stage, defines? })`                                                 | `Module`      |
+| `parseSpirv(words)`                                                                      | `Module`      |
+| `validate(module)`                                                                       | `ModuleInfo`  |
+| `writeWgsl(module, info, { flags? })`                                                    | `string`      |
+| `writeGlsl(module, info, { version, stage, entryPoint, bindingMap?, flags?, reflect? })` | `string`      |
+| `writeHlsl(module, info, { shaderModel?, reflect? })`                                    | `string`      |
+| `writeMsl(module, info, { langVersion?, reflect? })`                                     | `string`      |
+| `writeSpirv(module, info, { flags? })`                                                   | `Uint32Array` |
 
 `parseSpirv` accepts a `Uint8Array` or `Uint32Array`.
 
@@ -118,8 +118,20 @@ writeGlsl(module, info, {
 });
 ```
 
-`reflect` is deprecated because `{ code, reflection }` becomes the default
-return in the next major. `translate` with `to: "glsl"` always returns only
+### HLSL and MSL reflection
+
+With `reflect: true`, `writeHlsl` and `writeMsl` return `{ code, reflection }`
+where `reflection.entryPoints` maps each WGSL entry point to its written name,
+or to an error when naga could not write it:
+
+```ts
+const { reflection } = writeMsl(module, info, { reflect: true });
+reflection.entryPoints;
+// { vs_main: { name: "vs_main" }, fs_main: { name: "fs_main" } }
+```
+
+`reflect` is deprecated on all three writers because `{ code, reflection }`
+becomes the default return in the next major. `translate` always returns only
 the code.
 
 ### Writer flags

@@ -10,7 +10,7 @@ use crate::options::{
     GlslParseOptions, GlslWriteOptions, HlslWriteOptions, MslWriteOptions,
     SpirvWriteOptions, WgslWriteOptions,
 };
-use crate::reflection::GlslOutput;
+use crate::reflection::{EntryPointOutput, GlslOutput};
 
 #[wasm_bindgen]
 pub struct Module {
@@ -141,46 +141,58 @@ pub fn write_glsl(
     }
 }
 
-#[wasm_bindgen(js_name = writeHlsl)]
+#[wasm_bindgen(js_name = writeHlsl, unchecked_return_type = "string | HlslOutput")]
 pub fn write_hlsl(
     module: &Module,
     info: &ModuleInfo,
     #[wasm_bindgen(unchecked_optional_param_type = "HlslWriteOptions")]
     options: JsValue,
-) -> Result<String, JsError> {
+) -> Result<JsValue, JsError> {
     let options: HlslWriteOptions = self::options(options)?;
     let mut hlsl_options = hlsl::Options::default();
     if let Some(model) = options.shader_model {
         hlsl_options.shader_model = options::shader_model(&model)?;
     }
-    let mut out = String::new();
-    hlsl::Writer::new(&mut out, &hlsl_options, &Default::default()).write(
-        &module.module,
-        &info.0,
-        None,
-    )?;
-    Ok(out)
+    let mut code = String::new();
+    let reflection =
+        hlsl::Writer::new(&mut code, &hlsl_options, &Default::default())
+            .write(&module.module, &info.0, None)?;
+    if options.reflect.unwrap_or_default() {
+        EntryPointOutput::new(
+            code,
+            &module.module,
+            reflection.entry_point_names,
+        )
+        .into_js()
+    } else {
+        Ok(code.into())
+    }
 }
 
-#[wasm_bindgen(js_name = writeMsl)]
+#[wasm_bindgen(js_name = writeMsl, unchecked_return_type = "string | MslOutput")]
 pub fn write_msl(
     module: &Module,
     info: &ModuleInfo,
     #[wasm_bindgen(unchecked_optional_param_type = "MslWriteOptions")]
     options: JsValue,
-) -> Result<String, JsError> {
+) -> Result<JsValue, JsError> {
     let options: MslWriteOptions = self::options(options)?;
     let mut msl_options = msl::Options::default();
     if let Some(version) = options.lang_version {
         msl_options.lang_version = version;
     }
-    let (out, _) = msl::write_string(
+    let (code, info) = msl::write_string(
         &module.module,
         &info.0,
         &msl_options,
         &Default::default(),
     )?;
-    Ok(out)
+    if options.reflect.unwrap_or_default() {
+        EntryPointOutput::new(code, &module.module, info.entry_point_names)
+            .into_js()
+    } else {
+        Ok(code.into())
+    }
 }
 
 #[wasm_bindgen(js_name = writeSpirv)]

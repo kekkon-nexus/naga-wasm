@@ -23,6 +23,20 @@ export interface GlslOutput {
 	code: string;
 	reflection: GlslReflection;
 }
+
+export interface EntryPointReflection {
+	entryPoints: Record<string, { name: string } | { error: string }>;
+}
+
+export interface HlslOutput {
+	code: string;
+	reflection: EntryPointReflection;
+}
+
+export interface MslOutput {
+	code: string;
+	reflection: EntryPointReflection;
+}
 "#;
 
 #[derive(Serialize)]
@@ -109,8 +123,60 @@ impl GlslOutput {
     }
 
     pub fn into_js(self) -> Result<JsValue, JsError> {
-        let serializer = serde_wasm_bindgen::Serializer::new()
-            .serialize_maps_as_objects(true);
-        Ok(self.serialize(&serializer)?)
+        to_js(&self)
     }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+enum EntryPoint {
+    Name(String),
+    Error(String),
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EntryPointReflection {
+    entry_points: HashMap<String, EntryPoint>,
+}
+
+#[derive(Serialize)]
+pub struct EntryPointOutput {
+    code: String,
+    reflection: EntryPointReflection,
+}
+
+impl EntryPointOutput {
+    pub fn new<E: std::fmt::Display>(
+        code: String,
+        module: &upstream::Module,
+        names: Vec<Result<String, E>>,
+    ) -> Self {
+        let entry_points = module
+            .entry_points
+            .iter()
+            .zip(names)
+            .map(|(entry_point, name)| {
+                let name = match name {
+                    Ok(name) => EntryPoint::Name(name),
+                    Err(error) => EntryPoint::Error(error.to_string()),
+                };
+                (entry_point.name.clone(), name)
+            })
+            .collect();
+        Self {
+            code,
+            reflection: EntryPointReflection { entry_points },
+        }
+    }
+
+    pub fn into_js(self) -> Result<JsValue, JsError> {
+        to_js(&self)
+    }
+}
+
+fn to_js(value: &impl Serialize) -> Result<JsValue, JsError> {
+    let serializer =
+        serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+    Ok(value.serialize(&serializer)?)
 }

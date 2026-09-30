@@ -37,10 +37,12 @@ export interface GlslWriteOptions {
 
 export interface HlslWriteOptions {
 	shaderModel?: "5_0" | "5_1" | "6_0" | "6_1" | "6_2" | "6_3" | "6_4" | "6_5" | "6_6" | "6_7" | "6_8" | "6_9";
+	reflect?: boolean;
 }
 
 export interface MslWriteOptions {
 	langVersion?: [major: number, minor: number];
+	reflect?: boolean;
 }
 
 export interface SpirvWriteOptions {
@@ -158,12 +160,14 @@ impl GlslFlags {
 #[serde(rename_all = "camelCase")]
 pub struct HlslWriteOptions {
     pub shader_model: Option<String>,
+    pub reflect: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct MslWriteOptions {
     pub lang_version: Option<(u8, u8)>,
+    pub reflect: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
